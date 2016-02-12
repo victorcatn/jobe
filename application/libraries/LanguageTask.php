@@ -155,8 +155,9 @@ abstract class Task {
             $memsize = 1000 * $this->getParam('memorylimit');
             $cputime = $this->getParam('cputime');
             $numProcs = $this->getParam('numprocs');
-
-            $cmd = implode(' ', $this->getRunCommand());
+            
+            $cmd = "timeout --signal=9 $cputime ";
+            $cmd .= implode(' ', $this->getRunCommand());
             $cmd .= " >prog.out 2>prog.err";
 
             // Set up the work directory and run the job
@@ -266,8 +267,12 @@ abstract class Task {
         } 
         
         // Refine RuntimeError if possible
+        // For this version of Jobe, which uses the Linux timeout command,
+        // we assume that only a time limit can result in the 'Killed'
+        // stderr output.
 
-        if (strpos($this->stderr, "warning: timelimit exceeded")) {
+        if (strpos($this->stderr, "warning: timelimit exceeded") !== FALSE ||
+            strpos($this->stderr, "Killed") !== FALSE) {
             $this->result = Task::RESULT_TIME_LIMIT;
             $this->signal = 9;
             $this->stderr = '';
@@ -298,7 +303,7 @@ abstract class Task {
     public function close($deleteFiles=TRUE) {
         if ($deleteFiles) {
             $dir = $this->workdir;
-            exec("sudo rm -R $dir");
+            exec("rm -R $dir");
         }
     }
 
