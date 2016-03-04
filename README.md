@@ -91,20 +91,21 @@ all currently-supported languages is the following
     apt-get install php5 libapache2-mod-php5 php5-mcrypt mysql-server\
           libapache2-mod-auth-mysql php5-mysql php5-cli octave nodejs\
           git python3 build-essential openjdk-7-jre openjdk-7-jdk python3-pip\
-          fp-compiler
+          fp-compiler sqlite3
     pip3 install pylint
     pylint --reports=no --generate-rcfile > /etc/pylintrc
 
-[pylint is strictly optional].
+pylint and sqlite3 are required only if you're explicitly using them in
+your queries, e.g. for custom Python3 or SQL CodeRunner questions.
 
 Similar commands should work on other Debian-based Linux distributions,
 although some differences are inevitable.
 
 The first step is to clone the project in the web root directory WEBROOT
-(usually /var/www on Debian-based systems or /var/www/html on Red Hat).
+(typically /var/www/html).
 Do not clone the project elsewhere and attempt to add it to web root with
 symbolic links. That breaks this installer. In what follows, replace
-WEBROOT with either /var/www or /var/www/html as appropriate.
+WEBROOT with /var/www/html or whatever is appropriate on your machine.
 
 To clone the project:
 
@@ -152,6 +153,13 @@ If the install appears OK but testsubmit.py fails:
 
  1. It is running with Python3, right?
  1. Check the apache error log.
+ 1. Try using your web browser to view jobe directly, e.g. with a URL like
+"localhost/jobe". You should get the message "Please access this API via
+the runs, runresults, files or languages collections". If instead you get
+a message about being unable to connect to the database then either you're
+inadvertently using API keys (which must be read from the database) and
+you should edit application/config/rest.php to disable keys or you're deliberately
+using keys but have configured the database wrongly.
  1. Set DEBUGGING = True in testsubmit.py (around line 19). This will result
     in all jobe runs being saved in /home/jobe/runs. [Normally a run directory
     is removed after each run completes.]
