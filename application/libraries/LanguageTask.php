@@ -170,33 +170,8 @@ abstract class Task {
     // Execute this task, which must already have been compiled if necessary
     public function execute() {
         try {
-            // Establish all the parameters for the job run
-            $cmd = implode(' ', $this->getRunCommand()) . " >prog.out 2>prog.err";
-
-            if ($this->input != '') {
-                file_put_contents('prog.in', $this->input);
-                $cmd .= " <prog.in";
-            }
-            else {
-                $cmd .= " </dev/null";
-            }
-
-            $cmd = $this->getSandboxCommand() . $cmd;
-
-            // Set up the work directory and run the job
-            chdir($this->workdir);
-            file_put_contents('prog.cmd', $cmd);
-            $handle = popen($cmd, 'r');
-            fread($handle, MAX_READ);
-            pclose($handle);
-
-            // Copy results back out into this object
-            $this->stdout = file_get_contents("{$this->workdir}/prog.out");
-
-            if (file_exists("{$this->workdir}/prog.err")) {
-                $this->stderr = file_get_contents("{$this->workdir}/prog.err");
-            }
-
+            $cmd = implode(' ', $this->getRunCommand());
+            list($this->stdout, $this->stderr) = $this->run_in_sandbox($cmd, $this->input);
             $this->stderr = $this->filteredStderr();
             $this->diagnose_result();  // Analyse output and set result
         }
@@ -208,6 +183,66 @@ abstract class Task {
             $this->result = Task::RESULT_INTERNAL_ERR;
             $this->stderr = $e->getMessage();
         }
+    }
+
+    /**
+     * Run the given shell command in the runguard sandbox, using the given
+     * string for stdin (if given).
+     * @param string $cmd The shell command to execute
+     * @param string $stdin The string to use as standard input. If not given use /dev/null
+     * @return array a two element array of the standard output and the standard error
+     * from running the given command.
+     */
+    public function run_in_sandbox($cmd, $stdin=null) {
+        $filesize = 1000 * $this->getParam('disklimit'); // MB -> kB
+        $streamsize = 1000 * $this->getParam('streamsize'); // MB -> kB
+        $memsize = 1000 * $this->getParam('memorylimit');
+        $cputime = $this->getParam('cputime');
+        $numProcs = $this->getParam('numprocs');
+        $commandBits = array(
+             "sudo " . dirname(__FILE__)  . "/../../runguard/runguard",
+             "--user={$this->user}",
+             "--group=jobe",
+             "--time=$cputime",         // Seconds of execution time allowed
+             "--filesize=$filesize",    // Max file sizes
+             "--nproc=$numProcs",       // Max num processes/threads for this *user*
+             "--no-core",
+             "--streamsize=$streamsize");   // Max stdout/stderr sizes
+
+        if ($memsize != 0) {  // Special case: Matlab won't run with a memsize set. TODO: WHY NOT!
+            $sandboxCmdBits[] = "--memsize=$memsize";
+        }
+        $commandBits[] = $cmd;
+        $cmd = implode(' ', $commandBits) . " >prog.out 2>prog.err";
+
+        // Set up the work directory and run the job
+        $workdir = $this->workdir;
+        exec("setfacl -m u:{$this->user}:rwX $workdir");  // Give the user RW access
+        chdir($workdir);
+
+        if ($stdin) {
+            $f = fopen('prog.in', 'w');
+            fwrite($f, $stdin);
+            fclose($f);
+            $cmd .= " <prog.in\n";
+        }
+        else {
+            $cmd .= " </dev/null\n";
+        }
+
+        file_put_contents('prog.cmd', $cmd);
+
+        $handle = popen($cmd, 'r');
+        $result = fread($handle, MAX_READ);
+        pclose($handle);
+
+        $output = file_get_contents("$workdir/prog.out");
+        if (file_exists("{$this->workdir}/prog.err")) {
+            $stderr = file_get_contents("{$this->workdir}/prog.err");
+        } else {
+            $stderr = '';
+        }
+        return array($output, $stderr);
     }
 
 
