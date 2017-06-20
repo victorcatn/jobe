@@ -42,13 +42,10 @@ class Java_Task extends Task {
     public function compile() {
         $prog = file_get_contents($this->sourceFileName);
         $compileArgs = $this->getParam('compileargs');
-        $cmd = '/usr/bin/javac ' . implode(' ', $compileArgs) . " {$this->sourceFileName} 2>compile.out";
-        exec($this->getSandboxCommand() . $cmd, $output, $returnVar);
-        if ($returnVar == 0) {
+        $cmd = '/usr/bin/javac ' . implode(' ', $compileArgs) . " {$this->sourceFileName}";
+        list($output, $this->cmpinfo) = $this->run_in_sandbox($cmd);
+        if (empty($this->cmpinfo)) {
             $this->executableFileName = $this->sourceFileName;
-        }
-        else {
-            $this->cmpinfo .= file_get_contents('compile.out');
         }
     }
 
