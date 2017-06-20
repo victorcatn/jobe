@@ -39,7 +39,7 @@ VERBOSE = False
 # Set DEBUGGING to True to instruct Jobe to use debug mode, i.e., to
 # leave all runs (commands, input output etc) in /home/jobe/runs, rather
 # than deleting each run as soon as it is done.
-DEBUGGING = False
+DEBUGGING = True
 
 # Set JOBE_SERVER to the Jobe server URL.
 # If Jobe expects an X-API-Key header, set API_KEY to a working value and set
@@ -403,7 +403,7 @@ int main() {
     printf("sqr(7) = %d\n", sqr(7));
 }''',
     'sourcefilename': 'test.c',
-    'parameters': {'numprocs': 2},
+    'parameters': {'numprocs': 5},
     'expect': { 'outcome': 15, 'stdout': '''sqr(0) = 0
 sqr(7) = 49
 ''', 'stderr': ''}
@@ -708,7 +708,7 @@ int main() {
     printf("Hello 2\n");
 }''',
         'sourcefilename': 'test.c',
-        'parameters': { 'numprocs': 2 },
+        'parameters': { 'numprocs': 5 },
         'expect': { 'outcome': 15, 'stdout': 'Hello 1\nHello 2\n' }
     }
 
