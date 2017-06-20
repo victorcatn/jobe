@@ -50,13 +50,14 @@ class Java_Task extends Task {
     }
 
     // A default name for Java programs. [Called only if API-call does
-    // not provide a filename]
+    // not provide a filename. As a side effect, also set the mainClassName.
     public function defaultFileName($sourcecode) {
         $main = $this->getMainClass($sourcecode);
         if ($main === FALSE) {
             $this->cmpinfo .= "WARNING: can't determine main class, so source file has been named 'prog.java', which probably won't compile.";
             return 'prog.java'; // This will probably fail
         } else {
+            $this->mainClassName = $main;  // HACK. TODO - find a nicer solution
             return $main.'.java';
         }
     }

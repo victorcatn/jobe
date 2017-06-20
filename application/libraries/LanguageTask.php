@@ -142,31 +142,6 @@ abstract class Task {
     public abstract function compile();
 
 
-    // Returns the command for running another command in the runguard sandbox.
-    // This can be prepended in front of another command.
-    public function getSandboxCommand() {
-        $filesize = 1000 * $this->getParam('disklimit'); // MB -> kB
-        $streamsize = 1000 * $this->getParam('streamsize'); // MB -> kB
-        $memsize = 1000 * $this->getParam('memorylimit');
-        $cputime = $this->getParam('cputime');
-        $numProcs = $this->getParam('numprocs');
-        $sandboxCmdBits = array(
-                "sudo " . dirname(__FILE__)  . "/../../runguard/runguard",
-                "--user={$this->user}",
-                "--group=jobe",
-                "--time=$cputime",         // Seconds of execution time allowed
-                "--filesize=$filesize",    // Max file sizes
-                "--nproc=$numProcs",       // Max num processes/threads for this *user*
-                "--no-core",
-                "--streamsize=$streamsize");   // Max stdout/stderr sizes
-
-        if ($memsize != 0) {  // Special case: Matlab won't run with a memsize set. TODO: WHY NOT!
-            $sandboxCmdBits[] = "--memsize=$memsize";
-        }
-
-        return implode(' ', $sandboxCmdBits) . ' ';
-    }
-
     // Execute this task, which must already have been compiled if necessary
     public function execute() {
         try {
@@ -210,7 +185,7 @@ abstract class Task {
              "--streamsize=$streamsize");   // Max stdout/stderr sizes
 
         if ($memsize != 0) {  // Special case: Matlab won't run with a memsize set. TODO: WHY NOT!
-            $sandboxCmdBits[] = "--memsize=$memsize";
+            $commandBits[] = "--memsize=$memsize";
         }
         $commandBits[] = $cmd;
         $cmd = implode(' ', $commandBits) . " >prog.out 2>prog.err";
